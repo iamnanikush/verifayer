@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verifayer — Proof of Human</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400&family=Outfit:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+
+:root {
+  --bg: #05060A;
+  --ink: #F0F2F8;
+  --dim: #3A4258;
+  --dim2: #5A6278;
+  --blue: #4AACF0;
+  --mint: #00D49A;
+  --mid: #00BCD8;
+  --red: #FF4D4D;
+  --gold: #F0B840;
+  --surface: #0C0F1A;
+  --border: rgba(255,255,255,0.06);
+}
+
+body {
+  background: var(--bg);
+  font-family: 'Outfit', sans-serif;
+  color: var(--ink);
+  height: 100vh;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+.slide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 60px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+}
+
+.slide.active { opacity: 1; pointer-events: auto; }
+
+.progress { position:fixed; top:0; left:0; right:0; height:2px; background:rgba(255,255,255,0.04); z-index:100; }
+.progress-fill { height:100%; background:linear-gradient(90deg,var(--blue),var(--mint)); transition:width 0.4s ease; }
+
+.nav { position:fixed; bottom:28px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:16px; z-index:100; }
+.nav-btn { width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);color:var(--ink);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all 0.2s; }
+.nav-btn:hover { border-color:var(--mint); color:var(--mint); }
+.slide-count { font-family:'DM Mono',monospace;font-size:10px;color:var(--dim);letter-spacing:2px;min-width:52px;text-align:center; }
+
+.kicker { font-family:'DM Mono',monospace;font-size:10px;letter-spacing:4px;color:var(--mint);text-transform:uppercase;margin-bottom:20px; }
+.headline { font-size:clamp(28px,4.5vw,58px);font-weight:800;line-height:1.06;letter-spacing:-0.02em;text-align:center;margin-bottom:20px; }
+.headline .accent { background:linear-gradient(135deg,var(--blue),var(--mint));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
+.headline .red { color:var(--red);-webkit-text-fill-color:var(--red); }
+.subhead { font-size:clamp(13px,1.6vw,18px);font-weight:300;color:rgba(240,242,248,0.5);text-align:center;max-width:580px;line-height:1.65;margin-bottom:36px; }
+
+.split { display:grid;grid-template-columns:1fr 1fr;gap:20px;width:100%;max-width:860px; }
+.card { border-radius:16px;padding:28px; }
+.card.bad { background:rgba(255,77,77,0.05);border:1px solid rgba(255,77,77,0.18); }
+.card.good { background:rgba(0,212,154,0.05);border:1px solid rgba(0,212,154,0.18); }
+.card.neutral { background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07); }
+.card-label { font-family:'DM Mono',monospace;font-size:9px;letter-spacing:3px;text-transform:uppercase;margin-bottom:12px; }
+.card.bad .card-label { color:var(--red); }
+.card.good .card-label { color:var(--mint); }
+.card.neutral .card-label { color:var(--dim2); }
+.card-title { font-size:17px;font-weight:700;margin-bottom:10px; }
+.card-body { font-size:13px;color:rgba(240,242,248,0.45);line-height:1.65; }
+
+.stats { display:flex;gap:16px;justify-content:center;flex-wrap:wrap; }
+.stat { text-align:center;padding:20px 28px;border-radius:14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06); }
+.stat-num { font-size:clamp(24px,3.5vw,44px);font-weight:900;background:linear-gradient(135deg,var(--blue),var(--mint));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1;margin-bottom:6px; }
+.stat-num.red { background:none;-webkit-text-fill-color:var(--red); }
+.stat-label { font-family:'DM Mono',monospace;font-size:9px;color:var(--dim);letter-spacing:1px;text-transform:uppercase;max-width:120px; }
+
+.ledger { background:rgba(0,0,0,0.35);border:1px solid rgba(0,212,154,0.12);border-radius:12px;padding:18px 22px;max-width:500px;width:100%;font-family:'DM Mono',monospace;margin-bottom:14px; }
+.ledger-row { display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:11px;opacity:0;transition:opacity 0.4s ease; }
+.ledger-row:last-child { border-bottom:none; }
+.ledger-row.visible { opacity:1; }
+.ledger-check { color:var(--mint); }
+.ledger-key { color:var(--dim2);min-width:130px; }
+.ledger-val { color:var(--ink);flex:1; }
+.ledger-true { color:var(--mint);margin-left:auto;font-size:9px;letter-spacing:1px; }
+
+.did-box { background:rgba(0,188,216,0.05);border:1px solid rgba(0,188,216,0.18);border-radius:12px;padding:16px 20px;max-width:480px;width:100%;text-align:center; }
+.did-label { font-family:'DM Mono',monospace;font-size:9px;letter-spacing:3px;color:var(--blue);margin-bottom:8px; }
+.did-value { font-family:'DM Mono',monospace;font-size:14px;color:var(--mint);letter-spacing:0.5px; }
+.did-sub { font-size:11px;color:var(--dim2);margin-top:6px; }
+
+.institutions { display:flex;gap:12px;justify-content:center;flex-wrap:wrap;max-width:680px; }
+.inst { display:flex;flex-direction:column;align-items:center;gap:8px;padding:18px 20px;border-radius:14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);min-width:100px;opacity:0;transform:translateY(12px);transition:all 0.3s ease; }
+.inst.visible { opacity:1;transform:translateY(0); }
+.inst-icon { font-size:26px; }
+.inst-name { font-size:12px;font-weight:600; }
+.inst-check { font-family:'DM Mono',monospace;font-size:8px;color:var(--mint);letter-spacing:1px; }
+
+.wallet-preview { background:linear-gradient(135deg,#0C0F1A,#060810);border:1px solid rgba(0,212,154,0.2);border-radius:20px;padding:20px;max-width:280px;width:100%; }
+.wp-header { display:flex;align-items:center;gap:10px;margin-bottom:14px; }
+.wp-avatar { width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--mint));display:flex;align-items:center;justify-content:center;font-size:15px; }
+.wp-name { font-size:13px;font-weight:700; }
+.wp-did { font-family:'DM Mono',monospace;font-size:8px;color:var(--mint);margin-top:2px; }
+.wp-cred { display:flex;align-items:center;gap:8px;padding:9px;border-radius:9px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);margin-bottom:7px; }
+.wp-cred.sel { border-color:rgba(0,212,154,0.3);background:rgba(0,212,154,0.04); }
+.wp-cred-icon { font-size:14px; }
+.wp-cred-title { font-size:10px;font-weight:600; }
+.wp-cred-issuer { font-family:'DM Mono',monospace;font-size:7px;color:var(--dim2); }
+.wp-check { font-size:10px;color:var(--mint);margin-left:auto; }
+.wp-btn { width:100%;padding:11px;border-radius:9px;background:linear-gradient(135deg,rgba(74,172,240,0.12),rgba(0,212,154,0.12));border:1px solid rgba(0,212,154,0.2);color:var(--ink);font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;margin-top:4px;text-align:center; }
+
+.glow-bg { position:fixed;border-radius:50%;pointer-events:none;filter:blur(100px);z-index:0; }
+.glow-1 { width:500px;height:500px;top:-180px;right:-120px;background:radial-gradient(circle,rgba(74,172,240,0.07),transparent 70%); }
+.glow-2 { width:400px;height:400px;bottom:-120px;left:-100px;background:radial-gradient(circle,rgba(0,212,154,0.06),transparent 70%); }
+
+@keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+.animate { animation:fadeUp 0.6s ease both; }
+.d1{animation-delay:0.1s} .d2{animation-delay:0.25s} .d3{animation-delay:0.4s} .d4{animation-delay:0.55s} .d5{animation-delay:0.7s}
+</style>
+</head>
+<body>
+
+<div class="glow-bg glow-1"></div>
+<div class="glow-bg glow-2"></div>
+<div class="progress"><div class="progress-fill" id="pf"></div></div>
+
+<!-- SLIDE 1 — TITLE -->
+<div class="slide active" id="slide-1">
+  <div class="kicker animate d1">Proof of Human</div>
+  <div class="headline animate d2">The world is digital.<br>Human identity <span class="accent">isn't. Yet.</span></div>
+  <div class="subhead animate d3">Every time you apply for an apartment, a job, a mortgage — you start from scratch. Same documents. Same wait. Same strangers who still might not believe you.</div>
+  <div class="animate d4" style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:3px;color:var(--dim);">VERIFAYER CHANGES THAT</div>
+</div>
+
+<!-- SLIDE 2 — THE PROBLEM -->
+<div class="slide" id="slide-2">
+  <div class="kicker animate">The Problem</div>
+  <div class="headline animate d1" style="font-size:clamp(20px,3vw,38px);margin-bottom:20px;">Everyone drowning in paperwork<br>that <span class="red">cannot be trusted.</span></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%;max-width:860px;" class="animate d2">
+    <div class="card bad">
+      <div class="card-label">The Renter</div>
+      <div class="card-title" style="font-size:15px;">Same pile. Every time.</div>
+      <div class="card-body">W2s. Pay stubs. Bank statements. ID. Tax returns. Credit report. Assembled from scratch for every apartment. For the rest of their life.</div>
+    </div>
+    <div class="card bad">
+      <div class="card-label">The Broker / Landlord</div>
+      <div class="card-title" style="font-size:15px;">30 applications. Days of work.</div>
+      <div class="card-body">Chasing income verification. Calling employers. Running credit. One bad tenant costs months of lost rent and thousands in legal fees.</div>
+    </div>
+    <div class="card bad">
+      <div class="card-label">The Job Candidate</div>
+      <div class="card-title" style="font-size:15px;">Rewriting the same resume. Again.</div>
+      <div class="card-body">Every application starts from zero. Skills typed out. Dates filled in. References listed. Nobody confirms any of it is true until weeks after an offer.</div>
+    </div>
+    <div class="card bad">
+      <div class="card-label">The Hiring Manager</div>
+      <div class="card-title" style="font-size:15px;">400 resumes. All sound the same.</div>
+      <div class="card-body">Hours screening AI written applications. No way to know who is real. Phone screening just to confirm what someone already claimed. Time wasted before a single interview.</div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 3 — FRAUD -->
+<div class="slide" id="slide-3">
+  <div class="kicker animate">The Fraud Epidemic</div>
+  <div class="headline animate d1" style="font-size:clamp(22px,3.2vw,44px);margin-bottom:20px;">AI made fraud <span class="red">effortless.</span></div>
+  <div class="subhead animate d2" style="margin-bottom:24px;">A fake pay stub. A doctored W2. Five minutes and a free app. Nearly every rental operator in the country has been hit.</div>
+  <div class="stats animate d3">
+    <div class="stat"><div class="stat-num red">93%</div><div class="stat-label">Operators hit by fraud last year</div></div>
+    <div class="stat"><div class="stat-num red">1 in 8</div><div class="stat-label">Applications contain false info</div></div>
+    <div class="stat"><div class="stat-num red">40%</div><div class="stat-label">Year over year increase</div></div>
+  </div>
+  <div class="subhead animate d4" style="margin-top:20px;font-size:14px;color:rgba(0,212,154,0.8);">Verifayer verifies at the source. Income against payroll. Identity against government databases. Nothing to fake.</div>
+</div>
+
+<!-- SLIDE 4 — RESUME & CREDENTIAL FRAUD -->
+<div class="slide" id="slide-4">
+  <div class="kicker animate">The Resume Lie</div>
+  <div class="headline animate d1" style="font-size:clamp(20px,3.2vw,44px);margin-bottom:20px;">People lie.<br><span class="red">About everything.</span></div>
+  <div class="subhead animate d2" style="margin-bottom:24px;">And now AI writes those lies for them. Polished. Convincing. Impossible to detect by reading alone.</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;width:100%;max-width:860px;" class="animate d3">
+    <div class="card bad">
+      <div class="card-label">Education</div>
+      <div class="card-title" style="font-size:15px;">Degrees that don't exist.</div>
+      <div class="card-body">Fake universities. Inflated GPAs. Certifications never earned. 1 in 4 people misrepresent their education on applications.</div>
+    </div>
+    <div class="card bad">
+      <div class="card-label">Employment</div>
+      <div class="card-title" style="font-size:15px;">Titles that were never held.</div>
+      <div class="card-body">Job titles inflated by two levels. Tenure stretched by months or years. Companies listed where they never worked a day.</div>
+    </div>
+    <div class="card bad">
+      <div class="card-label">Credentials</div>
+      <div class="card-title" style="font-size:15px;">Licenses never issued.</div>
+      <div class="card-body">Professional licenses claimed but never obtained. Certifications listed but expired or fabricated. In healthcare and law this is not just fraud — it is dangerous.</div>
+    </div>
+  </div>
+  <div class="subhead animate d4" style="margin-top:20px;font-size:13px;color:rgba(0,212,154,0.8);">Over 90% of resumes are now AI generated. The signal is gone. Verifayer brings it back.</div>
+</div>
+
+<!-- SLIDE 5 — WHAT IS VERIFAYER -->
+<div class="slide" id="slide-5">
+  <div class="kicker animate">The Solution</div>
+  <div class="headline animate d1" style="font-size:clamp(22px,3.5vw,46px);margin-bottom:12px;">One verified identity.<br><span class="accent">Carried everywhere. Forever.</span></div>
+  <div class="subhead animate d2" style="margin-bottom:24px;">Built on Decentralized Identifiers — a W3C global standard giving every person a verified digital identity they own entirely. No central authority. No institution holding your data.</div>
+  <div class="did-box animate d3">
+    <div class="did-label">Your Decentralized Identifier</div>
+    <div class="did-value">did:vfy:0x3f8a···c72d4f6e2a8</div>
+    <div class="did-sub">Globally unique · Tamper-proof · Permanently yours</div>
+  </div>
+</div>
+
+<!-- SLIDE 6 — THE LEDGER -->
+<div class="slide" id="slide-6">
+  <div class="kicker animate">Your Identity Ledger</div>
+  <div class="headline animate d1" style="font-size:clamp(20px,3vw,40px);margin-bottom:8px;">Every verified fact.<br><span class="accent">Printed permanently.</span></div>
+  <div class="subhead animate d2" style="margin-bottom:16px;">Each line confirmed by the authoritative source. Issued directly. Impossible to alter. Updates annually.</div>
+  <div class="ledger animate d3" id="ledger1">
+    <div class="ledger-row" id="lr1"><span class="ledger-check">✓</span><span class="ledger-key">Government ID</span><span class="ledger-val">SSN · DOB · Citizenship</span><span class="ledger-true">VERIFIED</span></div>
+    <div class="ledger-row" id="lr2"><span class="ledger-check">✓</span><span class="ledger-key">University of Florida</span><span class="ledger-val">BS Computer Science · GPA 3.4</span><span class="ledger-true">VERIFIED</span></div>
+    <div class="ledger-row" id="lr3"><span class="ledger-check">✓</span><span class="ledger-key">Google</span><span class="ledger-val">Senior Software Engineer · 22 months</span><span class="ledger-true">VERIFIED</span></div>
+    <div class="ledger-row" id="lr4"><span class="ledger-check">✓</span><span class="ledger-key">Annual Income</span><span class="ledger-val">$142,000 · IRS / W2 confirmed</span><span class="ledger-true">VERIFIED</span></div>
+    <div class="ledger-row" id="lr5"><span class="ledger-check">✓</span><span class="ledger-key">Credit Profile</span><span class="ledger-val">Score 740 · No evictions · Clean history</span><span class="ledger-true">VERIFIED</span></div>
+  </div>
+  <div class="animate d4" style="font-family:'DM Mono',monospace;font-size:9px;color:var(--dim);letter-spacing:2px;">SENSITIVE DATA STAYS AT SOURCE · VERIFAYER CONFIRMS IT IS TRUE</div>
+</div>
+
+<!-- SLIDE 7 — THE WALLET -->
+<div class="slide" id="slide-7">
+  <div class="kicker animate">Your Identity Wallet</div>
+  <div class="headline animate d1" style="font-size:clamp(20px,3vw,40px);margin-bottom:16px;">Select what to share.<br><span class="accent">Send in one tap.</span></div>
+  <div style="display:flex;gap:32px;align-items:center;justify-content:center;flex-wrap:wrap;" class="animate d2">
+    <div class="wallet-preview">
+      <div class="wp-header">
+        <div class="wp-avatar">👤</div>
+        <div><div class="wp-name">Nani Edry</div><div class="wp-did">did:vfy:0x3f8a···c72d</div></div>
+      </div>
+      <div class="wp-cred sel"><div class="wp-cred-icon">🪪</div><div><div class="wp-cred-title">Government Identity</div><div class="wp-cred-issuer">US GOVERNMENT</div></div><div class="wp-check">✓</div></div>
+      <div class="wp-cred sel"><div class="wp-cred-icon">💰</div><div><div class="wp-cred-title">Income $142K</div><div class="wp-cred-issuer">IRS / W2 VERIFIED</div></div><div class="wp-check">✓</div></div>
+      <div class="wp-cred sel"><div class="wp-cred-icon">💼</div><div><div class="wp-cred-title">Employment · Google</div><div class="wp-cred-issuer">PAYROLL SYSTEMS</div></div><div class="wp-check">✓</div></div>
+      <div class="wp-btn">↗ Share with Landlord</div>
+    </div>
+    <div style="max-width:280px;">
+      <div style="font-size:15px;font-weight:600;margin-bottom:12px;line-height:1.4;">The landlord gets everything they need. In seconds.</div>
+      <div style="font-size:13px;color:rgba(240,242,248,0.4);line-height:1.65;">No document requests. No employer calls. No waiting. Income real. Identity real. Decision made.</div>
+      <div style="margin-top:16px;font-family:'DM Mono',monospace;font-size:9px;color:var(--mint);letter-spacing:1px;">RECIPIENT SEES ONLY WHAT YOU SHARE</div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 8 — RENTALS TO HIRING -->
+<div class="slide" id="slide-8">
+  <div class="kicker animate">The Same Identity. Every Room.</div>
+  <div class="headline animate d1" style="font-size:clamp(20px,3vw,44px);margin-bottom:16px;">Got the apartment.<br><span class="accent">Now get the job.</span></div>
+  <div class="subhead animate d2" style="margin-bottom:24px;">The same verified identity that gets someone an apartment gets them their next job. One verification. Used everywhere. The resume is next to go.</div>
+  <div class="split animate d3" style="max-width:760px;">
+    <div class="card neutral">
+      <div class="card-label">Rental First</div>
+      <div class="card-title">Income. Identity. Credit.</div>
+      <div class="card-body">Brokers close faster. Landlords decide with confidence. Bad actors are out before they apply. Real estate companies scale without adding headcount.</div>
+    </div>
+    <div class="card good">
+      <div class="card-label">Same Identity · Hiring</div>
+      <div class="card-title">Education. Employment. Skills.</div>
+      <div class="card-body">Companies receive a ranked scored list confirmed against exactly what the role requires. No resumes. No noise. Just the right people at the top.</div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 9 — INDUSTRIES -->
+<div class="slide" id="slide-9">
+  <div class="kicker animate">One Hash. Every Room.</div>
+  <div class="headline animate d1" style="font-size:clamp(20px,3vw,44px);margin-bottom:16px;">The industries<br><span class="accent">are endless.</span></div>
+  <div class="subhead animate d2" style="margin-bottom:28px;">Any institution that needs to trust a human being gets the answer from the same verified source in the same instant.</div>
+  <div class="institutions" id="institutions">
+    <div class="inst"><div class="inst-icon">🏠</div><div class="inst-name">Rentals</div><div class="inst-check">Entry Point</div></div>
+    <div class="inst"><div class="inst-icon">🏢</div><div class="inst-name">Employers</div><div class="inst-check">Ranked · Scored</div></div>
+    <div class="inst"><div class="inst-icon">🏦</div><div class="inst-name">Banking</div><div class="inst-check">Loans · Credit</div></div>
+    <div class="inst"><div class="inst-icon">🏡</div><div class="inst-name">Mortgage</div><div class="inst-check">Income · ID</div></div>
+    <div class="inst"><div class="inst-icon">🏥</div><div class="inst-name">Healthcare</div><div class="inst-check">Credentials</div></div>
+    <div class="inst"><div class="inst-icon">🏛️</div><div class="inst-name">Government</div><div class="inst-check">Licensing</div></div>
+  </div>
+</div>
+
+<!-- SLIDE 10 — AI -->
+<div class="slide" id="slide-10">
+  <div class="kicker animate">The Intelligence Layer</div>
+  <div class="headline animate d1" style="font-size:clamp(20px,3vw,44px);margin-bottom:16px;">Humans make poor decisions.<br><span class="accent">AI does not.</span></div>
+  <div class="subhead animate d2" style="margin-bottom:24px;max-width:580px;">We are emotional. Biased. Inconsistent. AI reasons across millions of verified data points and finds patterns no human would catch.</div>
+  <div class="split animate d3" style="max-width:800px;">
+    <div class="card neutral">
+      <div class="card-label">The Brushfire Effect</div>
+      <div class="card-title">The ledger compounds.</div>
+      <div class="card-body">One verified data point leads to another. Builds on another. The more people verify the smarter the system gets. The smarter it gets the more valuable the network becomes.</div>
+    </div>
+    <div class="card good">
+      <div class="card-label">The Result</div>
+      <div class="card-title">Reasoning on verified facts.</div>
+      <div class="card-body">Which backgrounds predict strong tenants. Which career paths produce reliable employees. AI is no longer guessing. It knows what is actually true.</div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 11 — CLOSING -->
+<div class="slide" id="slide-11">
+  <div class="kicker animate d1">Verifayer · 2026</div>
+  <div class="headline animate d2">One ledger.<br>One link.<br><span class="accent">Everything a person is.</span></div>
+  <div class="subhead animate d3">Verified. Permanent. Theirs.</div>
+  <div class="animate d4" style="font-family:'DM Mono',monospace;font-size:12px;letter-spacing:3px;color:var(--mint);">PROOF OF HUMAN</div>
+  <div class="animate d5" style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--dim);margin-top:8px;">verifayer.com</div>
+</div>
+
+<div class="nav">
+  <button class="nav-btn" onclick="go(-1)">←</button>
+  <div class="slide-count" id="sc">1 / 11</div>
+  <button class="nav-btn" onclick="go(1)">→</button>
+</div>
+
+<script>
+const TOTAL = 11;
+let cur = 1;
+
+function go(dir) {
+  const next = cur + dir;
+  if (next < 1 || next > TOTAL) return;
+  document.getElementById('slide-' + cur).classList.remove('active');
+  cur = next;
+  document.getElementById('slide-' + cur).classList.add('active');
+  document.getElementById('sc').textContent = cur + ' / ' + TOTAL;
+  document.getElementById('pf').style.width = ((cur / TOTAL) * 100) + '%';
+  onEnter(cur);
+}
+
+function onEnter(n) {
+  if (n === 6) {
+    ['lr1','lr2','lr3','lr4','lr5'].forEach((id, i) => {
+      setTimeout(() => { const el = document.getElementById(id); if(el) el.classList.add('visible'); }, 300 + i * 220);
+    });
+  }
+  if (n === 9) {
+    document.querySelectorAll('#institutions .inst').forEach((el, i) => {
+      setTimeout(() => el.classList.add('visible'), 200 + i * 100);
+    });
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') go(1);
+  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   go(-1);
+});
+
+document.getElementById('pf').style.width = ((1/TOTAL)*100) + '%';
+</script>
+</body>
+</html>

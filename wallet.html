@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verifayer — My Identity Wallet</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+
+:root {
+  --bg: #06080F;
+  --surface: #0C0F1A;
+  --surface2: #111525;
+  --border: rgba(255,255,255,0.06);
+  --border2: rgba(255,255,255,0.1);
+  --ink: #F0F2F8;
+  --dim: #4A5268;
+  --dim2: #6A7288;
+  --blue: #4AACF0;
+  --mint: #00D49A;
+  --mid: #00BCD8;
+  --gold: #F0B840;
+  --red: rgba(255,80,80,0.8);
+}
+
+body {
+  background: var(--bg);
+  font-family: 'Outfit', sans-serif;
+  color: var(--ink);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Glow atmosphere */
+body::before {
+  content: '';
+  position: fixed;
+  top: -200px; right: -200px;
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(74,172,240,0.06), transparent 70%);
+  pointer-events: none;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  bottom: -200px; left: -200px;
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(0,212,154,0.05), transparent 70%);
+  pointer-events: none;
+}
+
+/* ── PHONE SHELL ── */
+.phone {
+  width: 375px;
+  background: var(--surface);
+  border-radius: 44px;
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow:
+    0 0 0 6px rgba(255,255,255,0.02),
+    0 40px 100px rgba(0,0,0,0.6),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Notch */
+.notch {
+  width: 120px; height: 28px;
+  background: var(--bg);
+  border-radius: 0 0 20px 20px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 10;
+}
+
+/* Status bar */
+.status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 24px 0;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--dim2);
+}
+
+/* ── SCROLL CONTENT ── */
+.content {
+  padding: 0 20px 32px;
+  max-height: 780px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.content::-webkit-scrollbar { display: none; }
+
+/* ── HEADER ── */
+.wallet-header {
+  padding: 20px 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.wallet-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.wallet-icon {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(74,172,240,0.15), rgba(0,212,154,0.15));
+  border: 1px solid rgba(0,212,154,0.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+}
+
+/* ── IDENTITY CARD ── */
+.id-card {
+  background: linear-gradient(135deg, #0D1828, #060C14);
+  border: 1px solid rgba(0,212,154,0.2);
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.id-card::before {
+  content: '';
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 160px; height: 160px;
+  background: radial-gradient(circle, rgba(74,172,240,0.08), transparent 70%);
+  pointer-events: none;
+}
+
+.id-card-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.avatar {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--blue), var(--mint));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.id-name { font-size: 17px; font-weight: 700; }
+.id-did {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: var(--mint);
+  letter-spacing: 0.5px;
+  margin-top: 3px;
+  opacity: 0.8;
+}
+
+.id-card-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+.id-stat {
+  background: rgba(255,255,255,0.04);
+  border-radius: 10px;
+  padding: 10px 8px;
+  text-align: center;
+}
+
+.id-stat-num {
+  font-size: 16px;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--blue), var(--mint));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.id-stat-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 8px;
+  color: var(--dim);
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+/* Score ring */
+.score-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(0,212,154,0.05);
+  border: 1px solid rgba(0,212,154,0.12);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-top: 14px;
+}
+
+.score-left { }
+.score-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: var(--dim2);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.score-val { font-size: 22px; font-weight: 800; color: var(--mint); }
+.score-sub { font-size: 10px; color: var(--dim2); margin-top: 2px; }
+
+.score-bar-wrap { flex: 1; margin-left: 16px; }
+.score-bar-bg {
+  height: 6px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.score-bar-fill {
+  height: 100%;
+  width: 87%;
+  background: linear-gradient(90deg, var(--blue), var(--mint));
+  border-radius: 3px;
+}
+.score-pct {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: var(--dim2);
+  margin-top: 5px;
+  text-align: right;
+}
+
+/* ── SECTION HEADER ── */
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  margin-top: 24px;
+}
+
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dim2);
+  letter-spacing: 0.3px;
+}
+
+.section-action {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: var(--mint);
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+
+/* ── CREDENTIAL CARD ── */
+.cred {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.cred:hover { border-color: var(--border2); background: rgba(255,255,255,0.04); }
+
+.cred.selected {
+  border-color: rgba(0,212,154,0.35);
+  background: rgba(0,212,154,0.04);
+}
+
+.cred.selected::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: linear-gradient(to bottom, var(--blue), var(--mint));
+  border-radius: 2px 0 0 2px;
+}
+
+.cred-icon {
+  width: 42px; height: 42px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.cred-body { flex: 1; min-width: 0; }
+.cred-title { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+.cred-issuer {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: var(--dim2);
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+.cred-detail { font-size: 11px; color: var(--dim2); }
+
+.cred-check {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px;
+  flex-shrink: 0;
+  border: 1.5px solid var(--border2);
+  color: var(--dim);
+  transition: all 0.2s;
+}
+
+.cred.selected .cred-check {
+  background: linear-gradient(135deg, var(--blue), var(--mint));
+  border-color: transparent;
+  color: #fff;
+}
+
+.verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0,212,154,0.1);
+  border: 1px solid rgba(0,212,154,0.2);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: 'DM Mono', monospace;
+  font-size: 8px;
+  color: var(--mint);
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+}
+
+/* ── SHARE BUTTON ── */
+.share-bar {
+  position: sticky;
+  bottom: 0;
+  background: linear-gradient(to top, var(--surface) 80%, transparent);
+  padding: 16px 0 0;
+  margin: 0 -20px;
+  padding: 20px 20px 0;
+}
+
+.share-btn {
+  width: 100%;
+  padding: 16px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(74,172,240,0.15), rgba(0,212,154,0.15));
+  border: 1px solid rgba(0,212,154,0.25);
+  color: var(--ink);
+  font-family: 'Outfit', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.2s;
+  margin-bottom: 8px;
+}
+
+.share-btn:hover {
+  background: linear-gradient(135deg, rgba(74,172,240,0.25), rgba(0,212,154,0.25));
+  border-color: rgba(0,212,154,0.4);
+}
+
+.share-btn-dot {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--blue), var(--mint));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px;
+}
+
+.share-note {
+  text-align: center;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: var(--dim);
+  letter-spacing: 1px;
+  padding-bottom: 8px;
+}
+
+/* ── ACTIVITY ── */
+.activity-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.activity-row:last-child { border-bottom: none; }
+
+.activity-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.activity-body { flex: 1; }
+.activity-title { font-size: 12px; font-weight: 500; }
+.activity-time { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--dim); margin-top: 2px; }
+.activity-result {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.5px;
+}
+
+/* Animations */
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+.cred { animation: fadeIn 0.4s ease both; }
+.cred:nth-child(1){animation-delay:0.05s}
+.cred:nth-child(2){animation-delay:0.1s}
+.cred:nth-child(3){animation-delay:0.15s}
+.cred:nth-child(4){animation-delay:0.2s}
+.cred:nth-child(5){animation-delay:0.25s}
+</style>
+</head>
+<body>
+
+<div class="phone">
+
+  <!-- Notch -->
+  <div class="notch"></div>
+
+  <!-- Status bar -->
+  <div class="status-bar">
+    <span>9:41</span>
+    <span>●●● ▲ 100%</span>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- Header -->
+    <div class="wallet-header">
+      <div class="wallet-title">My Identity</div>
+      <div class="wallet-icon">🔐</div>
+    </div>
+
+    <!-- ID Card -->
+    <div class="id-card">
+      <div class="id-card-top">
+        <div class="avatar">👤</div>
+        <div>
+          <div class="id-name">Nani Edry</div>
+          <div class="id-did">did:vfy:0x3f8a···c72d4f6</div>
+        </div>
+      </div>
+
+      <div class="id-card-stats">
+        <div class="id-stat">
+          <div class="id-stat-num">5</div>
+          <div class="id-stat-label">Verified</div>
+        </div>
+        <div class="id-stat">
+          <div class="id-stat-num">3</div>
+          <div class="id-stat-label">Shared</div>
+        </div>
+        <div class="id-stat">
+          <div class="id-stat-num">2026</div>
+          <div class="id-stat-label">Renews</div>
+        </div>
+      </div>
+
+      <div class="score-wrap">
+        <div class="score-left">
+          <div class="score-label">Identity Score</div>
+          <div class="score-val">87</div>
+          <div class="score-sub">Top 13% nationally</div>
+        </div>
+        <div class="score-bar-wrap">
+          <div class="score-bar-bg">
+            <div class="score-bar-fill"></div>
+          </div>
+          <div class="score-pct">87 / 100</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Credentials -->
+    <div class="section-head">
+      <div class="section-title">MY CREDENTIALS</div>
+      <div class="section-action" onclick="selectAll()">SELECT ALL</div>
+    </div>
+
+    <!-- Identity -->
+    <div class="cred selected" onclick="toggleCred(this)">
+      <div class="cred-icon" style="background:rgba(74,172,240,0.1);">🪪</div>
+      <div class="cred-body">
+        <div class="cred-title">Government Identity</div>
+        <div class="cred-issuer">ISSUED BY: US GOVERNMENT</div>
+        <div class="cred-detail">SSN confirmed · DOB verified · Citizenship confirmed</div>
+        <div class="verified-badge">✓ VERIFIED</div>
+      </div>
+      <div class="cred-check">✓</div>
+    </div>
+
+    <!-- Education -->
+    <div class="cred selected" onclick="toggleCred(this)">
+      <div class="cred-icon" style="background:rgba(240,184,64,0.1);">🎓</div>
+      <div class="cred-body">
+        <div class="cred-title">University of Florida</div>
+        <div class="cred-issuer">ISSUED BY: UNIVERSITY OF FLORIDA</div>
+        <div class="cred-detail">BS Computer Science · GPA 3.4 · Class of 2018</div>
+        <div class="verified-badge">✓ VERIFIED</div>
+      </div>
+      <div class="cred-check">✓</div>
+    </div>
+
+    <!-- Employment 1 -->
+    <div class="cred selected" onclick="toggleCred(this)">
+      <div class="cred-icon" style="background:rgba(0,188,216,0.1);">💼</div>
+      <div class="cred-body">
+        <div class="cred-title">Google</div>
+        <div class="cred-issuer">ISSUED BY: GOOGLE PAYROLL SYSTEMS</div>
+        <div class="cred-detail">Senior Software Engineer · 22 months</div>
+        <div class="verified-badge">✓ VERIFIED</div>
+      </div>
+      <div class="cred-check">✓</div>
+    </div>
+
+    <!-- Employment 2 -->
+    <div class="cred" onclick="toggleCred(this)">
+      <div class="cred-icon" style="background:rgba(74,172,240,0.08);">💼</div>
+      <div class="cred-body">
+        <div class="cred-title">IBM</div>
+        <div class="cred-issuer">ISSUED BY: IBM PAYROLL SYSTEMS</div>
+        <div class="cred-detail">Systems Engineer · 18 months</div>
+        <div class="verified-badge">✓ VERIFIED</div>
+      </div>
+      <div class="cred-check"></div>
+    </div>
+
+    <!-- Income -->
+    <div class="cred selected" onclick="toggleCred(this)">
+      <div class="cred-icon" style="background:rgba(0,212,154,0.1);">💰</div>
+      <div class="cred-body">
+        <div class="cred-title">Annual Income</div>
+        <div class="cred-issuer">ISSUED BY: IRS / W2 VERIFICATION</div>
+        <div class="cred-detail">$142,000 · 2025 · Confirmed</div>
+        <div class="verified-badge">✓ VERIFIED</div>
+      </div>
+      <div class="cred-check">✓</div>
+    </div>
+
+    <!-- Activity -->
+    <div class="section-head">
+      <div class="section-title">RECENT ACTIVITY</div>
+    </div>
+
+    <div class="activity-row">
+      <div class="activity-dot" style="background:var(--mint)"></div>
+      <div class="activity-body">
+        <div class="activity-title">Manhattan Luxury Rentals — Apartment Application</div>
+        <div class="activity-time">Today · 2 hours ago</div>
+      </div>
+      <div class="activity-result" style="color:var(--mint)">APPROVED</div>
+    </div>
+
+    <div class="activity-row">
+      <div class="activity-dot" style="background:var(--blue)"></div>
+      <div class="activity-body">
+        <div class="activity-title">Stripe — Job Application</div>
+        <div class="activity-time">Yesterday · 4:32 PM</div>
+      </div>
+      <div class="activity-result" style="color:var(--blue)">VIEWED</div>
+    </div>
+
+    <div class="activity-row">
+      <div class="activity-dot" style="background:var(--gold)"></div>
+      <div class="activity-body">
+        <div class="activity-title">Chase Bank — Mortgage Pre-approval</div>
+        <div class="activity-time">3 days ago</div>
+      </div>
+      <div class="activity-result" style="color:var(--gold)">PENDING</div>
+    </div>
+
+    <!-- Share -->
+    <div class="share-bar">
+      <button class="share-btn" onclick="sharePassport()">
+        <div class="share-btn-dot">↗</div>
+        Share Selected Credentials
+      </button>
+      <div class="share-note">4 of 5 selected · Recipient sees only what you share</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function toggleCred(el) {
+  el.classList.toggle('selected');
+  const check = el.querySelector('.cred-check');
+  if (el.classList.contains('selected')) {
+    check.textContent = '✓';
+  } else {
+    check.textContent = '';
+  }
+  updateCount();
+}
+
+function selectAll() {
+  document.querySelectorAll('.cred').forEach(c => {
+    c.classList.add('selected');
+    c.querySelector('.cred-check').textContent = '✓';
+  });
+  updateCount();
+}
+
+function updateCount() {
+  const selected = document.querySelectorAll('.cred.selected').length;
+  const total = document.querySelectorAll('.cred').length;
+  document.querySelector('.share-note').textContent = selected + ' of ' + total + ' selected · Recipient sees only what you share';
+}
+
+function sharePassport() {
+  const btn = document.querySelector('.share-btn');
+  btn.innerHTML = '<div class="share-btn-dot">✓</div> Link Copied to Clipboard';
+  btn.style.borderColor = 'rgba(0,212,154,0.5)';
+  setTimeout(() => {
+    btn.innerHTML = '<div class="share-btn-dot">↗</div> Share Selected Credentials';
+    btn.style.borderColor = '';
+  }, 2000);
+}
+</script>
+
+</body>
+</html>
